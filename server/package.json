@@ -1,0 +1,18 @@
+{
+  "name": "security-project",
+  "version": "1.0.0",
+  "description": "server",
+  "main": "index.js",
+  "dependencies": {
+    "typescript": "^3.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.9",
+    "nodemon": "^1.19.4"
+  },
+  "scripts": {
+    "start": "nodemon ./dist/server.js"
+  },
+  "author": "Mark Rahal",
+  "license": "ISC"
+}

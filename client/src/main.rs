@@ -74,7 +74,7 @@ fn get_shared_secret(
 
     let key_hash = hash(MessageDigest::sha256(), &key)?;
     let mut key_hash = key_hash.to_vec();
-    key_hash.truncate(16); // take first 16 chars
+    key_hash.truncate(16); // take first 16 bytes
 
     assert_eq!(key_hash.len(), 16); // needs to be 128 bits for aes-128
 

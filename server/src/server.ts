@@ -7,7 +7,7 @@ const namedCurve = "secp256k1";
 const hashAlgorithm = "sha256";
 
 // TODO research iv for gcm??
-const cipherAlgorithm = "aes-128-gcm";
+const cipherAlgorithm = "aes-128-ctr";
 // https://nodejs.org/api/crypto.html
 
 // TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
@@ -74,13 +74,20 @@ async function ECDSA(privateKey: KeyLike, publicKey: KeyLike, message: string) {
   // net.send(certBody + signature);
 }
 
+function hash(data: Buffer) {
+  const h = crypto.createHash("sha256");
+  h.update(data);
+  return h.digest();
+}
+
 async function ECDH(
   myPrivateKey: Buffer,
   otherPublicKey: Buffer,
   secret: crypto.CipherKey
 ) {
-  const cipher = crypto.createCipheriv(cipherAlgorithm, secret, null);
-  // TODO use this as a stream
+  const ivLen = 16;
+  const iv = crypto.randomBytes(ivLen);
+  const cipher = crypto.createCipheriv(cipherAlgorithm, secret, iv);
   cipher.update("messsaaage");
   return cipher.final();
 }
@@ -99,7 +106,9 @@ const othersPublicKey = othersEcdh.generateKeys();
 
   const secret = ecdh.computeSecret(othersPublicKey);
 
-  console.log(await ECDH(privateKey, othersPublicKey, secret));
+  const secretHash = hash(secret).slice(0, 16); // take 16 bytes
+
+  console.log(await ECDH(privateKey, othersPublicKey, secretHash));
 
   // await ECDSA(privateKey, publicKey, "hello");
 })();

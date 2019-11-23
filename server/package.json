@@ -1,18 +1,20 @@
 {
-  "name": "security-project",
+  "name": "security-project-server",
   "version": "1.0.0",
-  "description": "server",
-  "main": "index.js",
+  "main": "dist/server.js",
   "dependencies": {
     "typescript": "^3.7.2"
   },
   "devDependencies": {
     "@types/node": "^12.12.9",
+    "concurrently": "^5.0.0",
     "nodemon": "^1.19.4"
   },
   "scripts": {
-    "start": "nodemon ./dist/server.js"
+    "start": "nodemon ./dist/server.js",
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "dev": "concurrently --kill-others \"npm run watch\" \"npm run start\""
   },
-  "author": "Mark Rahal",
   "license": "ISC"
 }

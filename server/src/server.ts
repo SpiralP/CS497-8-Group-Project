@@ -1,7 +1,7 @@
 import * as net from "net";
-import crypto, { BinaryLike, KeyObject, KeyLike } from 'crypto';
-import assert from "assert"
-import util from "util"
+import crypto, { BinaryLike, KeyObject, KeyLike } from "crypto";
+import assert from "assert";
+import util from "util";
 
 const namedCurve = "secp256k1";
 const hashAlgorithm = "sha256";
@@ -9,7 +9,6 @@ const hashAlgorithm = "sha256";
 // TODO research iv for gcm??
 const cipherAlgorithm = "aes-128-gcm";
 // https://nodejs.org/api/crypto.html
-
 
 // TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
 
@@ -29,7 +28,6 @@ const cipherAlgorithm = "aes-128-gcm";
 
 // Hash:
 // Secure Hash Algorithm 256 (SHA256)
-
 
 // const server = net.createServer((socket) => {
 //   socket.write('Echo server\r\n');
@@ -56,13 +54,14 @@ function verify(publicKey: KeyLike, data: BinaryLike, signature: Buffer) {
   return isVerified;
 }
 
-
-
 async function ECDSA(privateKey: KeyLike, publicKey: KeyLike, message: string) {
   // Authentication:
   // Elliptic Curve Digital Signature Algorithm (ECDSA)
 
-  const messageHash = crypto.createHash(hashAlgorithm).update(message).digest();
+  const messageHash = crypto
+    .createHash(hashAlgorithm)
+    .update(message)
+    .digest();
   console.log(`messageHash: ${messageHash.toString("hex")}`);
 
   const signature = sign(privateKey, messageHash);
@@ -75,7 +74,11 @@ async function ECDSA(privateKey: KeyLike, publicKey: KeyLike, message: string) {
   // net.send(certBody + signature);
 }
 
-async function ECDH(myPrivateKey: Buffer, otherPublicKey: Buffer, secret: crypto.CipherKey) {
+async function ECDH(
+  myPrivateKey: Buffer,
+  otherPublicKey: Buffer,
+  secret: crypto.CipherKey
+) {
   const cipher = crypto.createCipheriv(cipherAlgorithm, secret, null);
   // TODO use this as a stream
   cipher.update("messsaaage");
@@ -84,7 +87,6 @@ async function ECDH(myPrivateKey: Buffer, otherPublicKey: Buffer, secret: crypto
 
 const othersEcdh = crypto.createECDH(namedCurve);
 const othersPublicKey = othersEcdh.generateKeys();
-
 
 (async () => {
   // https://nodejs.org/api/crypto.html#crypto_crypto_generatekeypairsync_type_options
@@ -97,16 +99,10 @@ const othersPublicKey = othersEcdh.generateKeys();
 
   const secret = ecdh.computeSecret(othersPublicKey);
 
-  console.log(
-    await ECDH(privateKey, othersPublicKey, secret)
-  );
-
+  console.log(await ECDH(privateKey, othersPublicKey, secret));
 
   // await ECDSA(privateKey, publicKey, "hello");
 })();
-
-
-
 
 // console.log(privateKey.export({
 //   format: "pem",

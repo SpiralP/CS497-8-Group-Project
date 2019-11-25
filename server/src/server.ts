@@ -121,7 +121,7 @@ Init
 public key (Chunk)
 
 Chunk
-number of data bytes (8 bytes)
+number of data bytes (u16)
 data (dynamic bytes)
 
 */
@@ -133,30 +133,62 @@ class ClientConnection {
 
   constructor(socket: Socket) {
     this.socket = socket;
+
+    (async () => {
+      await this.doHandshake();
+      await this.startReadLoop();
+    })();
   }
 
-  readChunk(): Buffer {
-    const numBytes = parseInt(this.socket.read(8));
+  async readChunk() {
+    await new Promise((resolve) => {
+      let fn: any;
+
+      fn = (data: any) => {
+        console.log("got ", data.length, "data");
+        this.socket.off("data", fn);
+        resolve();
+      };
+
+      this.socket.on("data", fn);
+    });
+
+    // network endian is big endian
+    // TODO why is this returning null?????
+    const numBytes2 = this.socket.read(2);
+
+    console.log(numBytes2);
+
+    if (numBytes2 == null) {
+      throw new Error("OK");
+    }
+    const numBytes = numBytes2.readUInt16BE(0);
+
+    console.log(`numBytes: ${numBytes}`);
     const data = this.socket.read(numBytes);
+    console.log(`data: `, data);
     return data;
   }
 
   writeChunk(data: Buffer) {
-    const buf = new Buffer(2);
-    buf.writeUInt16BE(data.length, 0);
-    this.socket.write(buf);
+    const dataLengthBuffer = new Buffer(2);
+
+    // network endian is big endian
+    dataLengthBuffer.writeUInt16BE(data.length, 0);
+    this.socket.write(dataLengthBuffer);
+
+    this.socket.write(data);
   }
 
-  doHandshake() {
-    const theirPublicKey = this.readChunk();
+  async doHandshake() {
+    console.log("read public key");
+    const theirPublicKey = await this.readChunk();
 
     if (this.isTrusted(theirPublicKey)) {
-      console.warn(`trusted ${this.socket.address()}`);
+      console.warn("trusted ", this.socket.address());
       this.writeChunk(myPrivateKey);
-
-      this.startReadLoop();
     } else {
-      console.warn(`not trusted ${this.socket.address()}`);
+      console.warn("not trusted ", this.socket.address());
       this.socket.end();
     }
   }
@@ -166,36 +198,38 @@ class ClientConnection {
     return true;
   }
 
-  startReadLoop() {
+  async startReadLoop() {
     while (true) {
       if (this.socket.destroyed) {
         // is this correct??
         break;
       }
 
-      const data = this.readChunk();
+      const data = await this.readChunk();
       this.handleMessage(data);
     }
   }
 
-  handleMessage(message: Buffer) {
-    console.log(`message: ${message}`);
+  async handleMessage(message: Buffer) {
+    console.log("message: ", message);
   }
 }
+
+const connections = [];
 
 const server = net
   .createServer((socket) => {
     socket.end();
   })
   .on("error", (err) => {
-    console.warn(`net error ${err}`);
+    console.warn("net error ", err);
   })
   .on("connection", (socket) => {
-    console.log(`connection from ${socket.address()}`);
-    new ClientConnection(socket);
+    console.log("connection from ", socket.address());
+    connections.push(new ClientConnection(socket));
   });
 
 // Grab an arbitrary unused port.
-server.listen(() => {
-  console.log(`opened server on ${server.address()}`);
+server.listen(12345, () => {
+  console.log("opened server on ", server.address());
 });

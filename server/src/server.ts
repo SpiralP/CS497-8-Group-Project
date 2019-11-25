@@ -1,13 +1,9 @@
-import * as net from "net";
-import crypto, { BinaryLike, KeyObject, KeyLike } from "crypto";
+import net, { Socket } from "net";
+import fs from "fs";
+import crypto, { BinaryLike, KeyLike } from "crypto";
 import assert from "assert";
-import util from "util";
+import { cipherAlgorithm, hashAlgorithm, namedCurve } from "./consts";
 
-const namedCurve = "secp256k1";
-const hashAlgorithm = "sha256";
-
-// TODO research iv for gcm??
-const cipherAlgorithm = "aes-128-ctr";
 // https://nodejs.org/api/crypto.html
 
 // TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
@@ -80,14 +76,17 @@ function hash(data: Buffer) {
   return h.digest();
 }
 
-async function ECDH(
-  myPrivateKey: Buffer,
-  otherPublicKey: Buffer,
-  secret: crypto.CipherKey
-) {
+async function ECDH(myPrivateKey: Buffer, otherPublicKey: Buffer) {
+  const ecdh = crypto.createECDH(namedCurve);
+  ecdh.setPrivateKey(myPrivateKey);
+
+  const secret = ecdh.computeSecret(othersPublicKey);
+
+  const secretHash = hash(secret).slice(0, 16); // take 16 bytes
+
   const ivLen = 16;
   const iv = crypto.randomBytes(ivLen);
-  const cipher = crypto.createCipheriv(cipherAlgorithm, secret, iv);
+  const cipher = crypto.createCipheriv(cipherAlgorithm, secretHash, iv);
   cipher.update("messsaaage");
   return cipher.final();
 }
@@ -104,21 +103,99 @@ const othersPublicKey = othersEcdh.generateKeys();
   const privateKey = ecdh.getPrivateKey();
   const publicKey = ecdh.getPublicKey();
 
-  const secret = ecdh.computeSecret(othersPublicKey);
+  const ag = await ECDH(privateKey, othersPublicKey);
 
-  const secretHash = hash(secret).slice(0, 16); // take 16 bytes
-
-  console.log(await ECDH(privateKey, othersPublicKey, secretHash));
+  console.log(ag.length);
 
   // await ECDSA(privateKey, publicKey, "hello");
 })();
 
-// console.log(privateKey.export({
-//   format: "pem",
-//   type: "sec1"
-// }).toString(), publicKey.export({
-//   format: "pem",
-//   type: "spki" // Simple public-key infrastructure
-// }).toString());
+/*
 
-// // console.log(crypto.privateEncrypt(privateKey, Buffer.from(message)));
+Handshake
+Client -> new connection -> Server
+Client -> Init -> Server
+Server -> ( Init | close ) -> Client
+
+Init
+public key (Chunk)
+
+Chunk
+number of data bytes (8 bytes)
+data (dynamic bytes)
+
+*/
+
+const myPrivateKey = fs.readFileSync("privateKey");
+
+class ClientConnection {
+  socket: Socket;
+
+  constructor(socket: Socket) {
+    this.socket = socket;
+  }
+
+  readChunk(): Buffer {
+    const numBytes = parseInt(this.socket.read(8));
+    const data = this.socket.read(numBytes);
+    return data;
+  }
+
+  writeChunk(data: Buffer) {
+    const buf = new Buffer(2);
+    buf.writeUInt16BE(data.length, 0);
+    this.socket.write(buf);
+  }
+
+  doHandshake() {
+    const theirPublicKey = this.readChunk();
+
+    if (this.isTrusted(theirPublicKey)) {
+      console.warn(`trusted ${this.socket.address()}`);
+      this.writeChunk(myPrivateKey);
+
+      this.startReadLoop();
+    } else {
+      console.warn(`not trusted ${this.socket.address()}`);
+      this.socket.end();
+    }
+  }
+
+  isTrusted(theirPublicKey: Buffer) {
+    // TODO
+    return true;
+  }
+
+  startReadLoop() {
+    while (true) {
+      if (this.socket.destroyed) {
+        // is this correct??
+        break;
+      }
+
+      const data = this.readChunk();
+      this.handleMessage(data);
+    }
+  }
+
+  handleMessage(message: Buffer) {
+    console.log(`message: ${message}`);
+  }
+}
+
+const server = net
+  .createServer((socket) => {
+    socket.end();
+  })
+  .on("error", (err) => {
+    console.warn(`net error ${err}`);
+  })
+  .on("connection", (socket) => {
+    console.log(`connection from ${socket.address()}`);
+    new ClientConnection(socket);
+  });
+
+// Grab an arbitrary unused port.
+server.listen(() => {
+  console.log(`opened server on ${server.address()}`);
+});

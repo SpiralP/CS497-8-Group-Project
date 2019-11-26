@@ -140,38 +140,43 @@ class ClientConnection {
     })();
   }
 
-  async readChunk() {
+  async waitForReadable() {
     await new Promise((resolve) => {
       let fn: any;
 
-      fn = (data: any) => {
-        console.log("got ", data.length, "data");
-        this.socket.off("data", fn);
+      fn = () => {
+        this.socket.off("readable", fn);
         resolve();
       };
 
-      this.socket.on("data", fn);
+      this.socket.on("readable", fn);
     });
+  }
+
+  async readExactBytes(n: number): Promise<Buffer> {
+    while (true) {
+      await this.waitForReadable(); // (10 (2 byte number)) (10 data bytes)
+
+      const chunk = this.socket.read(n);
+      if (chunk != null) {
+        return chunk;
+      }
+    }
+  }
+
+  // https://nodejs.org/api/stream.html#stream_readable_read_size
+  async readChunk() {
+    const numBytesBuffer = await this.readExactBytes(2);
 
     // network endian is big endian
-    // TODO why is this returning null?????
-    const numBytes2 = this.socket.read(2);
+    const length = numBytesBuffer.readUInt16BE(0);
 
-    console.log(numBytes2);
-
-    if (numBytes2 == null) {
-      throw new Error("OK");
-    }
-    const numBytes = numBytes2.readUInt16BE(0);
-
-    console.log(`numBytes: ${numBytes}`);
-    const data = this.socket.read(numBytes);
-    console.log(`data: `, data);
+    const data = await this.readExactBytes(length);
     return data;
   }
 
   writeChunk(data: Buffer) {
-    const dataLengthBuffer = new Buffer(2);
+    const dataLengthBuffer = Buffer.alloc(2);
 
     // network endian is big endian
     dataLengthBuffer.writeUInt16BE(data.length, 0);
@@ -211,7 +216,7 @@ class ClientConnection {
   }
 
   async handleMessage(message: Buffer) {
-    console.log("message: ", message);
+    console.log("message: ", message.toString());
   }
 }
 
@@ -219,7 +224,7 @@ const connections = [];
 
 const server = net
   .createServer((socket) => {
-    socket.end();
+    //
   })
   .on("error", (err) => {
     console.warn("net error ", err);

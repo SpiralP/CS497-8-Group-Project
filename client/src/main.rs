@@ -171,34 +171,29 @@ fn test_encryption() -> Result<()> {
     Ok(())
 }
 
+
 fn write_chunk(stream: &mut TcpStream, data: &[u8]) -> Result<()> {
     let mut buf = [0; 2];
     NetworkEndian::write_u16(&mut buf, data.len() as u16);
     stream.write_all(&buf).unwrap();
-    stream.flush().unwrap();
+    stream.write_all(&data).unwrap();
     Ok(())
 }
 
 fn read_chunk(stream: &mut TcpStream) -> Result<Vec<u8>> {
     let mut buf = [0; 2];
-    println!("asdf");
     stream.read_exact(&mut buf).unwrap();
-    stream.flush().unwrap();
     let data_len = NetworkEndian::read_u16(&buf);
 
-    todo!();
-
     let mut data_buf = vec![0; data_len as usize];
-    println!("asdfadsf");
     stream.read_exact(&mut data_buf).unwrap();
-    stream.flush().unwrap();
     Ok(data_buf)
 }
 
 #[test]
 fn test_connection() {
     let mut stream = TcpStream::connect("127.0.0.1:12345").unwrap();
-    stream.set_read_timeout(None).unwrap();
+    stream.set_read_timeout(None).unwrap(); // TODO
     stream.set_write_timeout(None).unwrap();
 
     println!("connected, writing");
@@ -206,7 +201,13 @@ fn test_connection() {
 
     println!("got {:#?}", read_chunk(&mut stream).unwrap());
 
+    std::thread::sleep_ms(1000);
+
+    write_chunk(&mut stream, b"hahhahaha").unwrap();
+
     std::thread::sleep_ms(10000);
+
+
 }
 
 // TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256

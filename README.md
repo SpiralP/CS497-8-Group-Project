@@ -1,3 +1,10 @@
+# Generate Keys
+
+```
+yarn build
+node ./dist/generateKeys.js
+```
+
 # Build Client
 
 - Download rustup from https://rustup.rs/

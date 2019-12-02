@@ -1,15 +1,13 @@
-use byteorder::{BigEndian, ByteOrder, NetworkEndian};
+use byteorder::{ByteOrder, NetworkEndian};
 use openssl::{
   bn::{BigNum, BigNumContext},
   derive::Deriver,
   ec::{EcGroup, EcKey, EcPoint, PointConversionForm},
-  ecdsa::EcdsaSig,
   error::ErrorStack,
   hash::{hash, MessageDigest},
   nid::Nid,
   pkey::*,
   rand::rand_bytes,
-  sign::{Signer, Verifier},
   symm::{Cipher, Crypter, Mode},
 };
 use std::{
@@ -26,11 +24,6 @@ fn get_curve() -> Result<EcGroup> {
 
 fn get_cipher() -> Result<Cipher> {
   Ok(Cipher::aes_128_ctr())
-}
-
-fn generate_private_key() -> Result<EcKey<Private>> {
-  let group = get_curve()?;
-  Ok(EcKey::generate(&group)?)
 }
 
 fn get_public_key(private_key: &EcKey<Private>) -> Result<PKey<Public>> {

@@ -1,8 +1,7 @@
 import net, { Socket } from "net";
 import fs from "fs";
-import crypto, { BinaryLike, KeyLike } from "crypto";
-import assert from "assert";
-import { cipherAlgorithm, hashAlgorithm, namedCurve } from "./consts";
+import crypto from "crypto";
+import { namedCurve } from "./consts";
 import { decrypt } from "./utils";
 
 // https://nodejs.org/api/crypto.html
@@ -25,70 +24,6 @@ import { decrypt } from "./utils";
 
 // Hash:
 // Secure Hash Algorithm 256 (SHA256)
-
-// const server = net.createServer((socket) => {
-//   socket.write('Echo server\r\n');
-//   socket.pipe(socket);
-// });
-
-// server.listen(1337, '127.0.0.1');
-
-function sign(privateKey: KeyLike, data: BinaryLike) {
-  const sign = crypto.createSign(hashAlgorithm);
-  sign.update(data);
-  sign.end();
-  const signature = sign.sign(privateKey);
-
-  return signature;
-}
-
-function verify(publicKey: KeyLike, data: BinaryLike, signature: Buffer) {
-  const verify = crypto.createVerify(hashAlgorithm);
-  verify.update(data);
-  verify.end();
-  const isVerified = verify.verify(publicKey, signature);
-
-  return isVerified;
-}
-
-async function ECDSA(privateKey: KeyLike, publicKey: KeyLike, message: string) {
-  // Authentication:
-  // Elliptic Curve Digital Signature Algorithm (ECDSA)
-
-  const messageHash = crypto
-    .createHash(hashAlgorithm)
-    .update(message)
-    .digest();
-  console.log(`messageHash: ${messageHash.toString("hex")}`);
-
-  const signature = sign(privateKey, messageHash);
-
-  console.log(`signature: `, signature);
-
-  assert(verify(publicKey, messageHash, signature));
-
-  // const certBody = message;
-  // net.send(certBody + signature);
-}
-
-// const othersEcdh = crypto.createECDH(namedCurve);
-// const othersPublicKey = othersEcdh.generateKeys();
-
-// (async () => {
-//   // https://nodejs.org/api/crypto.html#crypto_crypto_generatekeypairsync_type_options
-
-//   const ecdh = crypto.createECDH(namedCurve);
-//   ecdh.generateKeys();
-
-//   const privateKey = ecdh.getPrivateKey();
-//   const publicKey = ecdh.getPublicKey();
-
-//   const ag = await ECDH(privateKey, othersPublicKey);
-
-//   console.log(ag.length);
-
-//   // await ECDSA(privateKey, publicKey, "hello");
-// })();
 
 /*
 
@@ -192,7 +127,7 @@ class ClientConnection {
 
   isTrusted(theirPublicKey: Buffer) {
     const trusted = trustedKeys.find((element: string) => {
-      return Buffer.from(element, 'base64').equals(theirPublicKey);
+      return Buffer.from(element, "base64").equals(theirPublicKey);
     });
     if (!trusted) {
       return false;

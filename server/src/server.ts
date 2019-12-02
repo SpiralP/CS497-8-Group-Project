@@ -3,6 +3,7 @@ import fs from "fs";
 import crypto, { BinaryLike, KeyLike } from "crypto";
 import assert from "assert";
 import { cipherAlgorithm, hashAlgorithm, namedCurve } from "./consts";
+import { decrypt } from "./utils";
 
 // https://nodejs.org/api/crypto.html
 
@@ -70,45 +71,24 @@ async function ECDSA(privateKey: KeyLike, publicKey: KeyLike, message: string) {
   // net.send(certBody + signature);
 }
 
-function hash(data: Buffer) {
-  const h = crypto.createHash("sha256");
-  h.update(data);
-  return h.digest();
-}
+// const othersEcdh = crypto.createECDH(namedCurve);
+// const othersPublicKey = othersEcdh.generateKeys();
 
-async function ECDH(myPrivateKey: Buffer, otherPublicKey: Buffer) {
-  const ecdh = crypto.createECDH(namedCurve);
-  ecdh.setPrivateKey(myPrivateKey);
+// (async () => {
+//   // https://nodejs.org/api/crypto.html#crypto_crypto_generatekeypairsync_type_options
 
-  const secret = ecdh.computeSecret(othersPublicKey);
+//   const ecdh = crypto.createECDH(namedCurve);
+//   ecdh.generateKeys();
 
-  const secretHash = hash(secret).slice(0, 16); // take 16 bytes
+//   const privateKey = ecdh.getPrivateKey();
+//   const publicKey = ecdh.getPublicKey();
 
-  const ivLen = 16;
-  const iv = crypto.randomBytes(ivLen);
-  const cipher = crypto.createCipheriv(cipherAlgorithm, secretHash, iv);
-  cipher.update("messsaaage");
-  return cipher.final();
-}
+//   const ag = await ECDH(privateKey, othersPublicKey);
 
-const othersEcdh = crypto.createECDH(namedCurve);
-const othersPublicKey = othersEcdh.generateKeys();
+//   console.log(ag.length);
 
-(async () => {
-  // https://nodejs.org/api/crypto.html#crypto_crypto_generatekeypairsync_type_options
-
-  const ecdh = crypto.createECDH(namedCurve);
-  ecdh.generateKeys();
-
-  const privateKey = ecdh.getPrivateKey();
-  const publicKey = ecdh.getPublicKey();
-
-  const ag = await ECDH(privateKey, othersPublicKey);
-
-  console.log(ag.length);
-
-  // await ECDSA(privateKey, publicKey, "hello");
-})();
+//   // await ECDSA(privateKey, publicKey, "hello");
+// })();
 
 /*
 
@@ -126,10 +106,15 @@ data (dynamic bytes)
 
 */
 
+// load our private and public keys
 const myPrivateKey = fs.readFileSync("privateKey");
+const ecdh = crypto.createECDH(namedCurve);
+ecdh.setPrivateKey(myPrivateKey);
+const myPublicKey = ecdh.getPublicKey();
 
 class ClientConnection {
   socket: Socket;
+  sharedSecret?: Buffer;
 
   constructor(socket: Socket) {
     this.socket = socket;
@@ -191,7 +176,13 @@ class ClientConnection {
 
     if (this.isTrusted(theirPublicKey)) {
       console.warn("trusted ", this.socket.address());
-      this.writeChunk(myPrivateKey);
+      this.writeChunk(myPublicKey);
+
+
+      const ecdh = crypto.createECDH(namedCurve);
+      ecdh.setPrivateKey(myPrivateKey);
+
+      this.sharedSecret = ecdh.computeSecret(theirPublicKey);
     } else {
       console.warn("not trusted ", this.socket.address());
       this.socket.end();
@@ -210,7 +201,10 @@ class ClientConnection {
         break;
       }
 
-      const data = await this.readChunk();
+      const encryptedData = await this.readChunk();
+
+      const data = decrypt(this.sharedSecret!, encryptedData);
+      
       this.handleMessage(data);
     }
   }

@@ -175,16 +175,15 @@ class ClientConnection {
     const theirPublicKey = await this.readChunk();
 
     if (this.isTrusted(theirPublicKey)) {
-      console.warn("trusted ", this.socket.address());
+      console.log("trusted ", this.socket.address());
       this.writeChunk(myPublicKey);
-
 
       const ecdh = crypto.createECDH(namedCurve);
       ecdh.setPrivateKey(myPrivateKey);
 
       this.sharedSecret = ecdh.computeSecret(theirPublicKey);
     } else {
-      console.warn("not trusted ", this.socket.address());
+      console.log("not trusted ", this.socket.address());
       this.socket.end();
     }
   }
@@ -204,7 +203,7 @@ class ClientConnection {
       const encryptedData = await this.readChunk();
 
       const data = decrypt(this.sharedSecret!, encryptedData);
-      
+
       this.handleMessage(data);
     }
   }

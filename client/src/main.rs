@@ -1,6 +1,6 @@
 use byteorder::{BigEndian, ByteOrder, NetworkEndian};
 use openssl::{
-  bn::BigNumContext,
+  bn::{BigNum, BigNumContext},
   derive::Deriver,
   ec::{EcGroup, EcKey, EcPoint, PointConversionForm},
   ecdsa::EcdsaSig,
@@ -13,6 +13,7 @@ use openssl::{
   symm::{Cipher, Crypter, Mode},
 };
 use std::{
+  fs,
   io::{Read, Write},
   net::{TcpStream, ToSocketAddrs},
 };
@@ -254,21 +255,22 @@ impl Client {
   }
 }
 
-fn private_key_from_bytes(private_key: Vec<u8>, public_key: Vec<u8>) -> EcKey<private> {
+fn private_key_from_bytes(private_key: Vec<u8>, public_key: Vec<u8>) -> EcKey<Private> {
   let mut ctx = BigNumContext::new().unwrap();
 
   let group = get_curve().unwrap();
 
-  let point = EcPoint::from_bytes(&group, bytes, &mut ctx).unwrap();
-  
-  let big_number = BigNum::from_slice(&data);
+  let public_key = EcPoint::from_bytes(&group, &public_key, &mut ctx).unwrap();
 
-  EcKey::from_private_componenets(&group, &big_number, &point).unwrap()
+  let private_number = BigNum::from_slice(&private_key).unwrap();
+
+  EcKey::from_private_components(&group, &private_number, &public_key).unwrap()
 }
 
 fn main() -> Result<()> {
   // load our private key
-  let private_key = private_key_from_bytes(fs::read("client").unwrap(), fs::read("client.pub").unwrap());
+  let private_key =
+    private_key_from_bytes(fs::read("client").unwrap(), fs::read("client.pub").unwrap());
   // let pkey = PKey::from_ec_key(private_key)?;
 
   let mut client = Client::connect("127.0.0.1:12345", private_key);

@@ -254,9 +254,21 @@ impl Client {
   }
 }
 
+fn private_key_from_bytes(private_key: Vec<u8>, public_key: Vec<u8>) -> EcKey<private> {
+  let mut ctx = BigNumContext::new().unwrap();
+
+  let group = get_curve().unwrap();
+
+  let point = EcPoint::from_bytes(&group, bytes, &mut ctx).unwrap();
+  
+  let big_number = BigNum::from_slice(&data);
+
+  EcKey::from_private_componenets(&group, &big_number, &point).unwrap()
+}
+
 fn main() -> Result<()> {
   // load our private key
-  let private_key = generate_private_key()?;
+  let private_key = private_key_from_bytes(fs::read("client").unwrap(), fs::read("client.pub").unwrap());
   // let pkey = PKey::from_ec_key(private_key)?;
 
   let mut client = Client::connect("127.0.0.1:12345", private_key);

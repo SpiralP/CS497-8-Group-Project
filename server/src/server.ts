@@ -107,7 +107,9 @@ data (dynamic bytes)
 */
 
 // load our private and public keys
-const myPrivateKey = fs.readFileSync("privateKey");
+const trustedKeysString = fs.readFileSync("trustedKeys.json").toString();
+const trustedKeys = JSON.parse(trustedKeysString);
+const myPrivateKey = fs.readFileSync("serverKey");
 const ecdh = crypto.createECDH(namedCurve);
 ecdh.setPrivateKey(myPrivateKey);
 const myPublicKey = ecdh.getPublicKey();
@@ -189,8 +191,14 @@ class ClientConnection {
   }
 
   isTrusted(theirPublicKey: Buffer) {
-    // TODO
-    return true;
+    const trusted = trustedKeys.find((element: string) => {
+      return Buffer.from(element, 'base64').equals(theirPublicKey);
+    });
+    if (!trusted) {
+      return false;
+    } else {
+      return true;
+    }
   }
 
   async startReadLoop() {

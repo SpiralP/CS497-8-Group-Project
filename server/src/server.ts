@@ -1,6 +1,7 @@
 import net, { Socket } from "net";
 import fs from "fs";
 import crypto from "crypto";
+import { PromiseSocket } from "promise-socket";
 import { namedCurve } from "./consts";
 import { decrypt } from "./utils";
 
@@ -50,11 +51,11 @@ ecdh.setPrivateKey(myPrivateKey);
 const myPublicKey = ecdh.getPublicKey();
 
 class ClientConnection {
-  socket: Socket;
+  socket: PromiseSocket<Socket>;
   sharedSecret?: Buffer;
 
   constructor(socket: Socket) {
-    this.socket = socket;
+    this.socket = new PromiseSocket(socket);
 
     (async () => {
       await this.doHandshake();
@@ -62,38 +63,29 @@ class ClientConnection {
     })();
   }
 
-  async waitForReadable() {
-    await new Promise((resolve) => {
-      let fn: any;
-
-      fn = () => {
-        this.socket.off("readable", fn);
-        resolve();
-      };
-
-      this.socket.on("readable", fn);
-    });
-  }
-
-  async readExactBytes(n: number): Promise<Buffer> {
+  async readBytes(n: number): Promise<Buffer> {
     while (true) {
-      await this.waitForReadable(); // (10 (2 byte number)) (10 data bytes)
-
-      const chunk = this.socket.read(n);
-      if (chunk != null) {
-        return chunk;
+      const buffer = await this.socket.read(n);
+      if (!buffer) {
+        throw new Error("closed");
       }
+
+      if (!Buffer.isBuffer(buffer)) {
+        throw new Error("not a buffer " + typeof buffer);
+      }
+
+      return buffer;
     }
   }
 
-  // https://nodejs.org/api/stream.html#stream_readable_read_size
   async readChunk() {
-    const numBytesBuffer = await this.readExactBytes(2);
+    const numBytesBuffer = await this.readBytes(2);
 
     // network endian is big endian
     const length = numBytesBuffer.readUInt16BE(0);
 
-    const data = await this.readExactBytes(length);
+    const data = await this.readBytes(length);
+
     return data;
   }
 
@@ -112,7 +104,7 @@ class ClientConnection {
     const theirPublicKey = await this.readChunk();
 
     if (this.isTrusted(theirPublicKey)) {
-      console.log("trusted ", this.socket.address());
+      console.log("trusted ", this.socket.stream.address());
       this.writeChunk(myPublicKey);
 
       const ecdh = crypto.createECDH(namedCurve);
@@ -120,7 +112,7 @@ class ClientConnection {
 
       this.sharedSecret = ecdh.computeSecret(theirPublicKey);
     } else {
-      console.log("not trusted ", this.socket.address());
+      console.log("not trusted ", this.socket.stream.address());
       this.socket.end();
     }
   }
@@ -138,11 +130,7 @@ class ClientConnection {
 
   async startReadLoop() {
     while (true) {
-      if (this.socket.destroyed) {
-        // is this correct??
-        break;
-      }
-
+      // just throws an error when closed
       const encryptedData = await this.readChunk();
 
       const data = decrypt(this.sharedSecret!, encryptedData);
@@ -152,7 +140,7 @@ class ClientConnection {
   }
 
   async handleMessage(message: Buffer) {
-    console.log("message: ", message.toString());
+    console.log(`message len ${message.length}`);
   }
 }
 

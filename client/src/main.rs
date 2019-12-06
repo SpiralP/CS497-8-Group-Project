@@ -11,9 +11,9 @@ use openssl::{
   symm::{Cipher, Crypter, Mode},
 };
 use std::{
-  fs,
+  env, fs,
   io::{Read, Write},
-  net::{TcpStream, ToSocketAddrs},
+  net::{SocketAddr, TcpStream, ToSocketAddrs},
 };
 
 type Result<T> = std::result::Result<T, ErrorStack>;
@@ -177,6 +177,7 @@ struct Client {
 
 impl Client {
   pub fn connect<A: ToSocketAddrs>(addr: A, my_private_key: EcKey<Private>) -> Self {
+    println!("connecting");
     let socket = TcpStream::connect(addr).unwrap();
 
     let my_public_key = get_public_key(&my_private_key).unwrap();
@@ -232,8 +233,6 @@ impl Client {
   }
 
   pub fn start_receive_loop(&mut self) {
-    self.send_message(b"hellasjdfklajsdklfo!");
-
     loop {
       let encrypted_data = self.read_chunk().unwrap();
 
@@ -245,6 +244,12 @@ impl Client {
 
   fn handle_message(&mut self, data: Vec<u8>) {
     println!("message: {:?}", data);
+  }
+}
+
+impl Drop for Client {
+  fn drop(&mut self) {
+    self.socket.shutdown(std::net::Shutdown::Both).unwrap();
   }
 }
 
@@ -266,8 +271,23 @@ fn main() -> Result<()> {
     private_key_from_bytes(fs::read("client").unwrap(), fs::read("client.pub").unwrap());
   // let pkey = PKey::from_ec_key(private_key)?;
 
-  let mut client = Client::connect("127.0.0.1:12345", private_key);
-  client.start_receive_loop();
+  let addr: String = env::args().nth(1).expect("need arg");
+  let addr: SocketAddr = addr.parse().unwrap();
+  let mut client = Client::connect(addr, private_key);
+
+  let stdin = std::io::stdin();
+  let mut stdin = stdin.lock();
+  let mut buffer = [0; 1024];
+  loop {
+    let read_bytes = stdin.read(&mut buffer).unwrap();
+    if read_bytes == 0 {
+      println!("stdin closed");
+      // stdin closed!
+      break;
+    }
+
+    client.send_message(&buffer[..read_bytes]);
+  }
 
   // // sign
   // let signer = Signer::new(MessageDigest::sha256(), &pkey)?;

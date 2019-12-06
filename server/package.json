@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "dist/server.js",
   "dependencies": {
+    "promise-socket": "^6.0.2",
     "typescript": "^3.7.2"
   },
   "devDependencies": {

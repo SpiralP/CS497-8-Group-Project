@@ -316,6 +316,11 @@ copy-descriptor@^0.1.0:
   resolved "https://registry.yarnpkg.com/copy-descriptor/-/copy-descriptor-0.1.1.tgz#676f6eb3c39997c2ee1ac3a924fd6124748f578d"
   integrity sha1-Z29us8OZl8LuGsOpJP1hJHSPV40=
 
+core-js@^3.2.1:
+  version "3.4.7"
+  resolved "https://registry.yarnpkg.com/core-js/-/core-js-3.4.7.tgz#57c35937da80fe494fbc3adcf9cf3dc00eb86b34"
+  integrity sha512-qaPVGw30J1wQ0GR3GvoPqlGf9GZfKKF4kFC7kiHlcsPTqH3txrs9crCp3ZiMAXuSenhz89Jnl4GZs/67S5VOSg==
+
 core-util-is@~1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/core-util-is/-/core-util-is-1.0.2.tgz#b5fd54220aa2bc5ab57aab7140c940754503c1a7"
@@ -1443,6 +1448,35 @@ process-nextick-args@~2.0.0:
   resolved "https://registry.yarnpkg.com/process-nextick-args/-/process-nextick-args-2.0.1.tgz#7820d9b16120cc55ca9ae7792680ae7dba6d7fe2"
   integrity sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag==
 
+promise-duplex@^5.0.2:
+  version "5.0.2"
+  resolved "https://registry.yarnpkg.com/promise-duplex/-/promise-duplex-5.0.2.tgz#8ee25fe3d3de6c6675f093eb8453558df93bb0cb"
+  integrity sha512-ikiaxkaQCdUWsF3rRBOIWGqVldBVRcn1a23Dbw8lQAS65FCBZGT0Ni+uedT0HFlY3Y/fwTNQtxlvwzP1m00KFg==
+  dependencies:
+    core-js "^3.2.1"
+    promise-readable "^5.0.3"
+    promise-writable "^5.0.3"
+
+promise-readable@^5.0.3:
+  version "5.0.3"
+  resolved "https://registry.yarnpkg.com/promise-readable/-/promise-readable-5.0.3.tgz#e7ffb5b69fa5b1cf6db62816ee0bf9d4d0d060d9"
+  integrity sha512-sshSIS/7Nzoyfyit2FZhM5Dka9AqqbcBNpRrmcAytLdPxSDvHXN8y37hqfcDcBK5XV0VlHUWaaFFY0vK3UPl9Q==
+  dependencies:
+    core-js "^3.2.1"
+
+promise-socket@^6.0.2:
+  version "6.0.2"
+  resolved "https://registry.yarnpkg.com/promise-socket/-/promise-socket-6.0.2.tgz#6cfdd195f64d49821fc4419eba53454a38acb57d"
+  integrity sha512-MBgx8CuB8jFd9eoLOU3d/2b5Eban+mXjr1zAIOTWxr/sgD975DfezY/OF3IwzsDIsZP/3omE4qxXsgDGmC8b5Q==
+  dependencies:
+    promise-duplex "^5.0.2"
+    tslib "^1.10.0"
+
+promise-writable@^5.0.3:
+  version "5.0.3"
+  resolved "https://registry.yarnpkg.com/promise-writable/-/promise-writable-5.0.3.tgz#535d67b591e806fdabacb04d2f0f9d58b984af04"
+  integrity sha512-mG/6Mo1b8SYT8790wnE8aNE4yerW4MXANoDs840UpVfxakzutQuJtqJDKTwcLoXz+ihlY2qeBjj6lx/VHk1nTQ==
+
 pseudomap@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/pseudomap/-/pseudomap-1.0.2.tgz#f052a28da70e618917ef0a8ac34c1ae5a68286b3"
@@ -1873,7 +1907,7 @@ tree-kill@^1.2.1:
   resolved "https://registry.yarnpkg.com/tree-kill/-/tree-kill-1.2.1.tgz#5398f374e2f292b9dcc7b2e71e30a5c3bb6c743a"
   integrity sha512-4hjqbObwlh2dLyW4tcz0Ymw0ggoaVDMveUB9w8kFSQScdRLo0gxO9J7WFcUBo+W3C1TLdFIEwNOWebgZZ0RH9Q==
 
-tslib@^1.9.0:
+tslib@^1.10.0, tslib@^1.9.0:
   version "1.10.0"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.10.0.tgz#c3c19f95973fb0a62973fb09d90d961ee43e5c8a"
   integrity sha512-qOebF53frne81cf0S9B41ByenJ3/IuH8yJKngAX35CmiZySA0khhkovshKK+jGCaMnVomla7gVlIcc3EvKPbTQ==
